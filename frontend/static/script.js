@@ -1,52 +1,68 @@
-const userInput = document.getElementById('user-query');
-const sendButton = document.getElementById('send-button');
-const chatHistory = document.getElementById('chatHistory');
+document.addEventListener('DOMContentLoaded', () => {
+    const userInput = document.getElementById('user-query');
+    const sendButton = document.getElementById('send-button');
+    const chatHistory = document.getElementById('chatHistory');
 
-// Function to add a message to the chat container with the correct structure
-function addMessage(message, sender) {
-    const chatWrapper = document.createElement('div');
-    chatWrapper.classList.add('chat');
-    chatWrapper.classList.add(sender === 'user' ? 'user-chat' : 'bot-chat');
+    // Function to generate and store a unique user ID
+    function getOrCreateUserId() {
+        let userId = localStorage.getItem('chatUserId');
+        if (!userId) {
+            userId = 'user_' + Date.now() + Math.random().toString(36).substring(2, 9);
+            localStorage.setItem('chatUserId', userId);
+        }
+        return userId;
+    }
 
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('chat-message');
-    messageDiv.innerHTML = message;
-    
-    chatWrapper.appendChild(messageDiv);
-    chatHistory.appendChild(chatWrapper);
-    
-    chatHistory.scrollTop = chatHistory.scrollHeight;
-}
+    // Function to add a message to the chat container
+    function addMessage(message, sender) {
+        const chatWrapper = document.createElement('div');
+        chatWrapper.classList.add('chat');
+        chatWrapper.classList.add(sender === 'user' ? 'user-chat' : 'bot-chat');
 
-sendButton.addEventListener('click', async () => {
-    const userMessage = userInput.value.trim();
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('chat-message');
+        messageDiv.innerHTML = message;
+        
+        chatWrapper.appendChild(messageDiv);
+        chatHistory.appendChild(chatWrapper);
+        
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
 
-    if (userMessage !== '') {
-        // Clear the input field immediately
+    // Handle the message submission
+    sendButton.addEventListener('click', sendMessage);
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    async function sendMessage() {
+        const userMessage = userInput.value.trim();
+        if (!userMessage) return;
+
+        const userId = getOrCreateUserId();
+        addMessage(userMessage, 'user');
         userInput.value = '';
 
-        // Add user's message to the chat
-        addMessage(userMessage, 'user');
-
-        // Show a loading message
-        addMessage('...', 'bot');
+        addMessage('...', 'bot'); // Show loading indicator
 
         try {
-            // Use the fetch API to send the user's question to your Flask server
             const response = await fetch('/chatbot', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/json'
                 },
-                body: new URLSearchParams({
-                    'question': userMessage
+                body: JSON.stringify({
+                    question: userMessage,
+                    user_id: userId
                 })
             });
 
             const jsonResponse = await response.json();
             
-            // Remove the loading message. The last message is always the typing indicator.
-            chatHistory.removeChild(chatHistory.lastChild);
+            chatHistory.removeChild(chatHistory.lastChild); // Remove loading indicator
             
             const botMessage = jsonResponse.answer;
             if (botMessage) {
@@ -54,20 +70,10 @@ sendButton.addEventListener('click', async () => {
             } else {
                 addMessage("Sorry, I could not get a response.", "bot");
             }
-
         } catch (error) {
             console.error('Error fetching data:', error);
-            // Remove the loading message and show an error
             chatHistory.removeChild(chatHistory.lastChild);
             addMessage("Sorry, an error occurred while connecting to the server.", "bot");
         }
-    }
-});
-
-// Optional: Add event listener for "Enter" key press
-userInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        sendButton.click();
     }
 });

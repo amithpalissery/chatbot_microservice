@@ -12,16 +12,20 @@ def home():
 # This route forwards the user's question to the AI microservice
 @app.route('/chatbot', methods=['POST'])
 def chatbot():
-    question = request.form.get('question')
-    if not question:
-        return jsonify({'answer': 'Please enter a question.'}), 400
+    # Get the user's question and the unique user ID from the request data
+    data = request.get_json()
+    question = data.get('question')
+    user_id = data.get('user_id')
+
+    if not question or not user_id:
+        return jsonify({'answer': 'Please provide a question and user ID.'}), 400
 
     try:
-        # NOTE: Replace 'http://127.0.0.1:5001' with your AI microservice's IP and port.
+        # NOTE: Replace 'http://ai-service:5001' with your AI microservice's actual address if not using Docker Compose.
         ai_api_url = "http://ai-service:5001/generate-response"
         
-        # Send the user's question to the AI service as JSON
-        response = requests.post(ai_api_url, json={'question': question})
+        # Send the user's question and unique ID to the AI service as JSON
+        response = requests.post(ai_api_url, json={'question': question, 'user_id': user_id})
         response.raise_for_status()
         
         # The AI microservice returns a JSON response

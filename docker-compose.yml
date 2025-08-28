@@ -1,24 +1,30 @@
 version: '3.8'
 
 services:
+  # The AI microservice, which now communicates with the chat history service
   ai-service:
-    build:
-      context: ./ai-service
-      dockerfile: Dockerfile
-    container_name: ai-service-container
+    build: ./ai-service
     ports:
       - "5001:5001"
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-    restart: always
+      # This uses the service name instead of an IP address
+      - CHAT_HISTORY_SERVICE_URL=http://chat-history-service:5002
 
+  # The chat history microservice, which stores chat context
+  chat-history-service:
+    build: ./chat-history-service
+    # Expose the port only to other services within the Docker network
+    expose:
+      - "5002"
+    environment:
+      - DATABASE_PATH=/app/chat_history.db
+
+  # Your existing frontend microservice
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: frontend-container
+    build: ./frontend
     ports:
       - "5000:5000"
-    depends_on:
-      - ai-service
-    restart: always
+    # Ensure your frontend sends requests to the ai-service at port 5001
+    
+# Use a .env file to store your GOOGLE_API_KEY for security
