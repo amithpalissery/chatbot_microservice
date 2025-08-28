@@ -15,4 +15,5 @@ USER appuser
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 EXPOSE 5002
-CMD ["gunicorn", "--bind", "0.0.0.0:5002", "chat_history_service:app"]
+# Change the CMD to use waitress
+CMD ["waitress-serve", "--host=0.0.0.0", "--port=5002", "chat_history_service:app"]
