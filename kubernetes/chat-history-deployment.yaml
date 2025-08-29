@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-history-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chat-history-service
+  template:
+    metadata:
+      labels:
+        app: chat-history-service
+    spec:
+      containers:
+      - name: chat-history-container
+        image: amithpalissery/chat-history-service:1.0.0
+        ports:
+        - containerPort: 5002
+        env:
+        - name: DATABASE_PATH
+          value: /app/chat_history.db
