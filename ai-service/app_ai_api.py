@@ -18,6 +18,13 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 # Get the URL of the chat history service from environment variables
 CHAT_HISTORY_SERVICE_URL = os.environ.get('CHAT_HISTORY_SERVICE_URL')
 
+@app.route('/healthz')
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
+
+
+
 @app.route('/generate-response', methods=['POST'])
 def generate_response():
     data = request.get_json()

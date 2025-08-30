@@ -28,6 +28,11 @@ def init_db():
 # Initialize the database on startup
 init_db()
 
+@app.route('/healthz')
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
+
 @app.route('/history', methods=['POST'])
 def add_message():
     data = request.json

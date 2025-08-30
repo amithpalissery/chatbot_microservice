@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: ai-service-container
-        image: amithpalissery/ai-service:1.0.0
+        image: amithpalissery/ai-service:1.0.1
         ports:
         - containerPort: 5001
         env:
@@ -25,3 +25,22 @@ spec:
               key: GOOGLE_API_KEY
         - name: CHAT_HISTORY_SERVICE_URL
           value: http://chat-history-service:5002
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"

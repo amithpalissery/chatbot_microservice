@@ -14,9 +14,28 @@ spec:
     spec:
       containers:
       - name: chat-history-container
-        image: amithpalissery/chat-history-service:1.0.0
+        image: amithpalissery/chat-history-service:1.0.1
         ports:
         - containerPort: 5002
         env:
         - name: DATABASE_PATH
           value: /app/chat_history.db
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5002
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5002
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"

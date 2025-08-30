@@ -9,6 +9,12 @@ app = Flask(__name__)
 def home():
     return render_template('question.html', chat_history=[])
 
+@app.route('/healthz')
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
+
+
 # This route forwards the user's question to the AI microservice
 @app.route('/chatbot', methods=['POST'])
 def chatbot():
