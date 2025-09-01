@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.chatHistoryService.name }}-deployment
+spec:
+  replicas: {{ .Values.chatHistoryService.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.chatHistoryService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.chatHistoryService.name }}
+    spec:
+      serviceAccountName: chat-history-service-sa
+      containers:
+      - name: {{ .Values.chatHistoryService.name }}-container
+        image: "{{ .Values.chatHistoryService.image.repository }}:{{ .Values.chatHistoryService.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.chatHistoryService.containerPort }}
+        env:
+        - name: DATABASE_PATH
+          value: {{ .Values.chatHistoryService.env.databasePath }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.chatHistoryService.containerPort }}
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.chatHistoryService.containerPort }}
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: {{ .Values.chatHistoryService.resources.requests.cpu }}
+            memory: {{ .Values.chatHistoryService.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.chatHistoryService.resources.limits.cpu }}
+            memory: {{ .Values.chatHistoryService.resources.limits.memory }}

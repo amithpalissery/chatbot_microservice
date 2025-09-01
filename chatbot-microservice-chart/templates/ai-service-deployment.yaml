@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.aiService.name }}-deployment
+spec:
+  replicas: {{ .Values.aiService.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.aiService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.aiService.name }}
+    spec:
+      serviceAccountName: ai-service-sa
+      containers:
+      - name: {{ .Values.aiService.name }}-container
+        image: "{{ .Values.aiService.image.repository }}:{{ .Values.aiService.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.aiService.containerPort }}
+        env:
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-service-secrets
+              key: GOOGLE_API_KEY
+        - name: CHAT_HISTORY_SERVICE_URL
+          value: {{ .Values.aiService.env.chatHistoryUrl }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.aiService.containerPort }}
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.aiService.containerPort }}
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: {{ .Values.aiService.resources.requests.cpu }}
+            memory: {{ .Values.aiService.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.aiService.resources.limits.cpu }}
+            memory: {{ .Values.aiService.resources.limits.memory }}

@@ -1,0 +1,65 @@
+# Default values for chatbot-microservice-chart.
+# This is a YAML-formatted file.
+
+# Frontend Service Configuration
+frontend:
+  name: frontend
+  replicaCount: 1
+  image:
+    repository: amithpalissery/frontend
+    tag: 1.0.1
+  containerPort: 5000
+  env:
+    # Add any environment variables here
+    # Example: FRONTEND_API_URL: http://ai-service:5001
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+
+# AI Service Configuration
+aiService:
+  name: ai-service
+  replicaCount: 1
+  image:
+    repository: amithpalissery/ai-service
+    tag: 1.0.1
+  containerPort: 5001
+  env:
+    chatHistoryUrl: "http://chat-history-service:5002"
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+# Chat History Service Configuration
+chatHistoryService:
+  name: chat-history-service
+  replicaCount: 1
+  image:
+    repository: amithpalissery/chat-history-service
+    tag: 1.0.1
+  containerPort: 5002
+  env:
+    databasePath: "/app/chat_history.db"
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+
+# Ingress Configuration (added to fix the Helm install error)
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations: {}
+  host: "my-frontend.com"
+  path: "/"
