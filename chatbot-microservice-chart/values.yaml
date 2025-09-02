@@ -1,6 +1,12 @@
 # Default values for chatbot-microservice-chart.
 # This is a YAML-formatted file.
 
+# Global application configuration
+config:
+  chatHistoryUrl: "http://chat-history-service:5002"
+  # Add other global configurations here
+  # Example: geminiApiUrl: "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+
 # Frontend Service Configuration
 frontend:
   name: frontend
@@ -9,9 +15,6 @@ frontend:
     repository: amithpalissery/frontend
     tag: 1.0.1
   containerPort: 5000
-  env:
-    # Add any environment variables here
-    # Example: FRONTEND_API_URL: http://ai-service:5001
   resources:
     requests:
       cpu: "100m"
@@ -28,8 +31,6 @@ aiService:
     repository: amithpalissery/ai-service
     tag: 1.0.1
   containerPort: 5001
-  env:
-    chatHistoryUrl: "http://chat-history-service:5002"
   resources:
     requests:
       cpu: "250m"
@@ -56,7 +57,7 @@ chatHistoryService:
       cpu: "100m"
       memory: "128Mi"
 
-# Ingress Configuration (added to fix the Helm install error)
+# Ingress Configuration
 ingress:
   enabled: true
   className: "nginx"

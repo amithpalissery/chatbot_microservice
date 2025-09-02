@@ -25,7 +25,10 @@ spec:
               name: ai-service-secrets
               key: GOOGLE_API_KEY
         - name: CHAT_HISTORY_SERVICE_URL
-          value: {{ .Values.aiService.env.chatHistoryUrl }}
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: chatHistoryUrl
         livenessProbe:
           httpGet:
             path: /healthz
