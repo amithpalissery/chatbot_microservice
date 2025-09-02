@@ -12,8 +12,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Python test tools
-        run: pip install pylint pytest
+#     - name: Install Python test tools
+#       run: pip install pylint pytest
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
