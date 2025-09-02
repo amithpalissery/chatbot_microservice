@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: self-hosted
+    runs-on: self-hosted # Use your self-hosted runner
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,11 +33,11 @@ jobs:
       - name: Build and push chat-history-service image
         uses: docker/build-push-action@v5
         with:
-          context: ./chathistory-service
+          context: ./chat-history-service
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chathistory-service:1.0.1-${{ env.TAG }}
-          file: ./chathistory-service/Dockerfile
-          
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-history-service:1.0.1-${{ env.TAG }}
+          file: ./chat-history-service/Dockerfile
+
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
@@ -46,20 +46,14 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:1.0.1-${{ env.TAG }}
           file: ./frontend/Dockerfile
 
+---
+
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted # Changed to self-hosted to use your configured machine
     needs: build-and-push
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up kubectl and kubeconfig
-        uses: azure/k8s-set-context@v4
-        with:
-          kubeconfig: ${{ secrets.KUBE_CONFIG }}
-
-      - name: Install Helm
-        uses: azure/setup-helm@v4
 
       - name: Deploy with Helm
         run: |
