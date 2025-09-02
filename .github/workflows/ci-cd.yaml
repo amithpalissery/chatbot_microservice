@@ -51,7 +51,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:1.0.1-${{ github.run_number }}
           file: ./frontend/Dockerfile
 
----
+
 
   deploy:
     runs-on: self-hosted
