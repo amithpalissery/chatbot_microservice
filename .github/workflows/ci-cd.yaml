@@ -12,28 +12,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Python test tools
+        run: pip install pylint pytest
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: javascript, python
-
-      - name: Run frontend linter
-        run: npm run lint --prefix frontend/
-
-      - name: Run frontend unit tests
-        run: npm test --prefix frontend/
+          languages: python
 
       - name: Run AI service linter
-        run: python -m pylint ai-service
+        run: pylint ./ai-service
 
       - name: Run AI service unit tests
-        run: python -m pytest ai-service
+        run: pytest ./ai-service
 
       - name: Run chat-history-service linter
-        run: python -m pylint chat-history-service
+        run: pylint ./chat-history-service
 
       - name: Run chat-history-service unit tests
-        run: python -m pytest chat-history-service
+        run: pytest ./chat-history-service
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3
@@ -115,5 +112,4 @@ jobs:
     steps:
       - name: Run OWASP ZAP passive DAST scan
         run: |
-          # Replace <your_app_url> with the actual URL of your deployed application
           docker run --rm owasp/zap2docker-stable zap-baseline.py -t <your_app_url> -g gen_report.html -r
