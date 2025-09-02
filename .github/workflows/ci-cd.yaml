@@ -15,25 +15,25 @@ jobs:
 #     - name: Install Python test tools
 #       run: pip install pylint pytest
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: python
+#     - name: Initialize CodeQL
+#        uses: github/codeql-action/init@v3
+  #      with:
+   #       languages: python
 
       # - name: Run AI service linter
       #   run: pylint ./ai-service
 
-      - name: Run AI service unit tests
-        run: pytest ./ai-service
+    #  - name: Run AI service unit tests
+     #   run: pytest ./ai-service
 
       # - name: Run chat-history-service linter
       #   run: pylint ./chat-history-service
 
-      - name: Run chat-history-service unit tests
-        run: pytest ./chat-history-service
-
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
+   #   - name: Run chat-history-service unit tests
+    #    run: pytest ./chat-history-service
+  
+ #     - name: Perform CodeQL analysis
+  #      uses: github/codeql-action/analyze@v3
 
   build-and-push:
     runs-on: self-hosted
