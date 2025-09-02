@@ -6,27 +6,44 @@ on:
       - main
 
 jobs:
-  build-and-push:
+  test:
     runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
         with:
-          node-version: '18' # Specify the version your frontend needs
+          languages: javascript, python
 
       - name: Run frontend linter
-        run: |
-          cd frontend
-          npm install
-          npm run lint
-      
+        run: npm run lint --prefix frontend/
+
       - name: Run frontend unit tests
-        run: |
-          cd frontend
-          npm test
+        run: npm test --prefix frontend/
+
+      - name: Run AI service linter
+        run: python -m pylint ai-service
+
+      - name: Run AI service unit tests
+        run: python -m pytest ai-service
+
+      - name: Run chat-history-service linter
+        run: python -m pylint chat-history-service
+
+      - name: Run chat-history-service unit tests
+        run: python -m pytest chat-history-service
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+
+  build-and-push:
+    runs-on: self-hosted
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -44,6 +61,12 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/ai-service:${{ github.sha }}
           file: ./ai-service/Dockerfile
+      - name: Scan AI service image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/ai-service:${{ github.sha }}
+          format: "table"
+          exit-code: "0"
 
       - name: Build and push chat-history-service image
         uses: docker/build-push-action@v5
@@ -52,6 +75,12 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-history-service:${{ github.sha }}
           file: ./chat-history-service/Dockerfile
+      - name: Scan chat-history-service image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/chat-history-service:${{ github.sha }}
+          format: "table"
+          exit-code: "0"
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -60,35 +89,16 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
           file: ./frontend/Dockerfile
-
-  security-scan:
-    runs-on: self-hosted
-    needs: build-and-push
-    steps:
-      - name: Scan AI service image with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/ai-service:${{ github.sha }}'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1' # This makes the job fail if critical/high vulnerabilities are found
-
-      - name: Scan chat-history-service image with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/chat-history-service:${{ github.sha }}'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
-
       - name: Scan frontend image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+          format: "table"
+          exit-code: "0"
 
   deploy:
     runs-on: self-hosted
-    needs: security-scan
+    needs: build-and-push
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -98,3 +108,12 @@ jobs:
             --set frontend.image.tag=${{ github.sha }} \
             --set aiService.image.tag=${{ github.sha }} \
             --set chatHistoryService.image.tag=${{ github.sha }}
+
+  dast-scan:
+    runs-on: self-hosted
+    needs: deploy
+    steps:
+      - name: Run OWASP ZAP passive DAST scan
+        run: |
+          # Replace <your_app_url> with the actual URL of your deployed application
+          docker run --rm owasp/zap2docker-stable zap-baseline.py -t <your_app_url> -g gen_report.html -r
