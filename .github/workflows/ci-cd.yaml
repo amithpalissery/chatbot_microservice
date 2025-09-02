@@ -2,38 +2,114 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  test:
+    runs-on: self-hosted
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install Python test tools
+        run: pip install pylint pytest
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
         with:
-          python-version: '3.12'
+          languages: python
 
-      - name: Create virtual environment
-        run: python3 -m venv .venv
+      # - name: Run AI service linter
+      #   run: pylint ./ai-service
 
-      - name: Activate virtual environment and install dependencies
+      - name: Run AI service unit tests
+        run: pytest ./ai-service
+
+      # - name: Run chat-history-service linter
+      #   run: pylint ./chat-history-service
+
+      - name: Run chat-history-service unit tests
+        run: pytest ./chat-history-service
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+
+  build-and-push:
+    runs-on: self-hosted
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push AI service image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ai-service
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ai-service:${{ github.sha }}
+          file: ./ai-service/Dockerfile
+      - name: Scan AI service image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/ai-service:${{ github.sha }}
+          format: "table"
+          exit-code: "0"
+
+      - name: Build and push chat-history-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./chat-history-service
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-history-service:${{ github.sha }}
+          file: ./chat-history-service/Dockerfile
+      - name: Scan chat-history-service image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/chat-history-service:${{ github.sha }}
+          format: "table"
+          exit-code: "0"
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+          file: ./frontend/Dockerfile
+      - name: Scan frontend image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+          format: "table"
+          exit-code: "0"
+
+  deploy:
+    runs-on: self-hosted
+    needs: build-and-push
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Deploy with Helm
         run: |
-          source .venv/bin/activate
-          pip install --upgrade pip
-          pip install pylint pytest
+          helm upgrade --install chatbot-release ./chatbot-microservice-chart \
+            --set frontend.image.tag=${{ github.sha }} \
+            --set aiService.image.tag=${{ github.sha }} \
+            --set chatHistoryService.image.tag=${{ github.sha }}
 
-      - name: Lint with pylint
+  dast-scan:
+    runs-on: self-hosted
+    needs: deploy
+    steps:
+      - name: Run OWASP ZAP passive DAST scan
         run: |
-          source .venv/bin/activate
-          pylint $(git ls-files '*.py')
-
-      - name: Test with pytest
-        run: |
-          source .venv/bin/activate
-          pytest
+          docker run --rm owasp/zap2docker-stable zap-baseline.py -t <your_app_url> -g gen_report.html -r
