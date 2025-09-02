@@ -2,7 +2,7 @@
 
 This repository contains a full-stack chatbot application built with three microservices, all designed to run on a Kubernetes cluster. The application leverages best practices in cloud-native development, including microservices architecture, containerization, and automated deployment with Helm.
 
------
+----
 
 ### Application Architecture and Workflow
 
