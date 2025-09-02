@@ -8,8 +8,6 @@ on:
 jobs:
   build-and-push:
     runs-on: self-hosted
-    outputs:
-      tag: ${{ steps.set-tag.outputs.TAG }} # Expose the TAG as a job output
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,16 +21,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set image tag
-        id: set-tag
-        run: echo "TAG=1.0.1-${{ github.run_number }}" >> $GITHUB_ENV
-        
       - name: Build and push AI service image
         uses: docker/build-push-action@v5
         with:
           context: ./ai-service
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ai-service:1.0.1-${{ github.run_number }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ai-service:${{ github.sha }}
           file: ./ai-service/Dockerfile
 
       - name: Build and push chat-history-service image
@@ -40,7 +34,7 @@ jobs:
         with:
           context: ./chat-history-service
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-history-service:1.0.1-${{ github.run_number }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-history-service:${{ github.sha }}
           file: ./chat-history-service/Dockerfile
 
       - name: Build and push frontend image
@@ -48,21 +42,18 @@ jobs:
         with:
           context: ./frontend
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:1.0.1-${{ github.run_number }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
           file: ./frontend/Dockerfile
-
-
 
   deploy:
     runs-on: self-hosted
-    needs: build-and-push
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Deploy with Helm
         run: |
           helm upgrade --install chatbot-release ./chatbot-microservice-chart \
-            --set frontend.image.tag=1.0.1-${{ needs.build-and-push.outputs.tag }} \
-            --set aiService.image.tag=1.0.1-${{ needs.build-and-push.outputs.tag }} \
-            --set chatHistoryService.image.tag=1.0.1-${{ needs.build-and-push.outputs.tag }}
+            --set frontend.image.tag=${{ github.sha }} \
+            --set aiService.image.tag=${{ github.sha }} \
+            --set chatHistoryService.image.tag=${{ github.sha }}
