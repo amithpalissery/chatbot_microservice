@@ -62,7 +62,7 @@ jobs:
         
       - name: Deploy with Helm
         run: |
-          helm upgrade --install chatbot ./chatbot-microservice-chart \
+          helm upgrade --install chatbot-release ./chatbot-microservice-chart \
             --set frontend.image.tag=${{ needs.build-and-push.outputs.tag }} \
             --set aiService.image.tag=${{ needs.build-and-push.outputs.tag }} \
             --set chatHistoryService.image.tag=${{ needs.build-and-push.outputs.tag }}
