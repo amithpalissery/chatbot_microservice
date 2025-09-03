@@ -51,8 +51,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Create secrets for AI service
-        run: kubectl create secret generic ai-service-secrets --from-literal=GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+      - name: Create or update secrets for AI service
+        run: |
+          echo "
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: ai-service-secrets
+          type: Opaque
+          stringData:
+            GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          " | kubectl apply -f -
 
       - name: Deploy with Helm
         run: |
